@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Paneli</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+<body>
+  <div class="container mt-4">
+    <h1>Randevular</h1>
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>İsim</th>
+          <th>Soyisim</th>
+          <th>Telefon</th>
+          <th>Tarih</th>
+          <th>Saat</th>
+          <th>İşlemler</th>
+        </tr>
+      </thead>
+      <tbody id="appointments-table">
+        <!-- Randevular buraya yüklenecek -->
+      </tbody>
+    </table>
+
+    <h2>Randevu Düzenle</h2>
+    <form id="edit-form" style="display:none;">
+      <input type="hidden" id="edit-id">
+      <div class="form-group">
+        <label for="edit-firstName">Ad:</label>
+        <input type="text" class="form-control" id="edit-firstName">
+      </div>
+      <div class="form-group">
+        <label for="edit-lastName">Soyad:</label>
+        <input type="text" class="form-control" id="edit-lastName">
+      </div>
+      <div class="form-group">
+        <label for="edit-phone">Telefon:</label>
+        <input type="text" class="form-control" id="edit-phone">
+      </div>
+      <div class="form-group">
+        <label for="edit-date">Tarih:</label>
+        <input type="date" class="form-control" id="edit-date">
+      </div>
+      <div class="form-group">
+        <label for="edit-time">Saat:</label>
+        <input type="time" class="form-control" id="edit-time">
+      </div>
+      <button type="submit" class="btn btn-primary">Randevu Güncelle</button>
+      <button type="button" class="btn btn-danger" id="delete-btn">Randevu Sil</button>
+    </form>
+  </div>
+
+  <script>
+    async function fetchAppointments() {
+      try {
+        const response = await fetch('http://localhost:3000/admin/appointments');
+        const appointments = await response.json();
+        const table = document.getElementById('appointments-table');
+        table.innerHTML = '';
+
+        appointments.forEach(app => {
+          const row = table.insertRow();
+          row.insertCell(0).innerText = app.firstName;
+          row.insertCell(1).innerText = app.lastName;
+          row.insertCell(2).innerText = app.phone;
+          row.insertCell(3).innerText = app.date;
+          row.insertCell(4).innerText = app.time;
+
+          const actions = row.insertCell(5);
+          const editBtn = document.createElement('button');
+          editBtn.innerText = 'Düzenle';
+          editBtn.classList.add('btn', 'btn-warning', 'btn-sm');
+          editBtn.addEventListener('click', () => populateEditForm(app._id, app));
+          actions.appendChild(editBtn);
+        });
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+      }
+    }
+
+    function populateEditForm(id, appointment) {
+      document.getElementById('edit-id').value = id;
+      document.getElementById('edit-firstName').value = appointment.firstName;
+      document.getElementById('edit-lastName').value = appointment.lastName;
+      document.getElementById('edit-phone').value = appointment.phone;
+      document.getElementById('edit-date').value = appointment.date;
+      document.getElementById('edit-time').value = appointment.time;
+      document.getElementById('edit-form').style.display = 'block';
+    }
+
+    document.getElementById('edit-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const id = document.getElementById('edit-id').value;
+      const data = {
+        firstName: document.getElementById('edit-firstName').value,
+        lastName: document.getElementById('edit-lastName').value,
+        phone: document.getElementById('edit-phone').value,
+        date: document.getElementById('edit-date').value,
+        time: document.getElementById('edit-time').value
+      };
+
+      try {
+        const response = await fetch(`http://localhost:3000/admin/appointments/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          alert('Randevu başarıyla güncellendi.');
+          fetchAppointments();
+          document.getElementById('edit-form').style.display = 'none';
+        } else {
+          const errorText = await response.text();
+          alert(`Randevu güncellenirken bir hata oluştu: ${errorText}`);
+        }
+      } catch (error) {
+        alert('Randevu güncellenirken bir hata oluştu.');
+      }
+    });
+
+    document.getElementById('delete-btn').addEventListener('click', async () => {
+      const id = document.getElementById('edit-id').value;
+
+      try {
+        const response = await fetch(`http://localhost:3000/admin/appointments/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          alert('Randevu başarıyla silindi.');
+          fetchAppointments();
+          document.getElementById('edit-form').style.display = 'none';
+        } else {
+          const errorText = await response.text();
+          alert(`Randevu silinirken bir hata oluştu: ${errorText}`);
+        }
+      } catch (error) {
+        alert('Randevu silinirken bir hata oluştu.');
+      }
+    });
+
+    // Sayfa yüklendiğinde randevuları çek
+    fetchAppointments();
+  </script>
+</body>
+</html>
